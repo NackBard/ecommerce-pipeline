@@ -33,6 +33,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      _PIP_ADDITIONAL_REQUIREMENTS: "confluent-kafka psycopg2-binary"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://user:password@postgres/analytics
     volumes:
       - ./processor/dags:/opt/airflow/dags

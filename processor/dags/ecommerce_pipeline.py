@@ -1,0 +1,123 @@
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime, timedelta
+import json
+import psycopg2
+from confluent_kafka import Consumer
+
+DB_CONN = "postgresql://user:password@postgres/analytics"
+
+def consume_from_kafka(**context):
+    """Читаем батч событий из Kafka и пишем в raw"""
+
+    consumer = Consumer({
+        'bootstrap.servers': 'kafka:9092',
+        'group.id': 'airflow-processor',
+        'auto.offset.reset': 'earliest',
+        'enable.auto.commit': False
+    })
+    consumer.subscribe(['ecommerce-events'])
+
+    conn = psycopg2.connect(DB_CONN)
+    cur = conn.cursor()
+
+    batch = []
+    deadline = datetime.now() + timedelta(seconds=30)
+
+    while datetime.now() < deadline:
+        msg = consumer.poll(timeout=1.0)
+        if msg is None or msg.error():
+            continue
+
+        event = json.loads(msg.value())
+        batch.append((
+            event['event_type'],
+            event['user_id'],
+            json.dumps(event['payload']),
+            event['created_at']
+        ))
+
+        if len(batch) >= 1000:
+            _insert_batch(cur, batch)
+            batch.clear()
+
+    if batch:
+        _insert_batch(cur, batch)
+
+    conn.commit()
+    consumer.commit()
+    print(f"Processed {len(batch)} events")
+
+
+def _insert_batch(cur, batch):
+    cur.executemany("""
+        INSERT INTO raw.events (event_type, user_id, payload, created_at)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT DO NOTHING
+    """, batch)
+
+
+def build_marts(**context):
+    conn = psycopg2.connect(DB_CONN)
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO mart.daily_revenue (date, orders_count, revenue, avg_order_value)
+        SELECT
+            created_at::date,
+            COUNT(*),
+            SUM((payload->>'amount')::numeric),
+            AVG((payload->>'amount')::numeric)
+        FROM raw.events
+        WHERE event_type = 'order_paid'
+          AND created_at::date = CURRENT_DATE - 1
+        GROUP BY created_at::date
+        ON CONFLICT (date) DO UPDATE
+            SET orders_count    = EXCLUDED.orders_count,
+                revenue         = EXCLUDED.revenue,
+                avg_order_value = EXCLUDED.avg_order_value
+    """)
+
+    cur.execute("""
+        INSERT INTO mart.conversion (date, views_count, orders_count, conversion_rate)
+        SELECT
+            date,
+            views,
+            orders,
+            ROUND(orders * 100.0 / NULLIF(views, 0), 2)
+        FROM (
+            SELECT
+                created_at::date as date,
+                COUNT(*) FILTER (WHERE event_type = 'item_viewed')  as views,
+                COUNT(*) FILTER (WHERE event_type = 'order_created') as orders
+            FROM raw.events
+            WHERE created_at::date = CURRENT_DATE - 1
+            GROUP BY created_at::date
+        ) sub
+        ON CONFLICT (date) DO UPDATE
+            SET views_count     = EXCLUDED.views_count,
+                orders_count    = EXCLUDED.orders_count,
+                conversion_rate = EXCLUDED.conversion_rate
+    """)
+
+    conn.commit()
+
+
+with DAG(
+    dag_id='ecommerce_pipeline',
+    start_date=datetime(2024, 1, 1),
+    schedule_interval='*/5 * * * *',
+    catchup=False
+) as dag:
+
+    ingest = PythonOperator(
+        task_id='consume_kafka',
+        python_callable=consume_from_kafka
+    )
+
+    aggregate = PythonOperator(
+        task_id='build_marts',
+        python_callable=build_marts
+    )
+
+    ingest >> aggregate
