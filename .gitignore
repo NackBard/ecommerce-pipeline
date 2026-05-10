@@ -1,0 +1,26 @@
+# C# / .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# переменные окружения — никогда не пушим пароли
+.env
+*.env
+
+# Docker volumes
+postgres_data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
