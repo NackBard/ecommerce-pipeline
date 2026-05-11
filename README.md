@@ -6,26 +6,26 @@ A real-time data engineering pipeline that simulates an e-commerce event stream,
 
 ```
 ┌─────────────────┐     Kafka topic      ┌──────────────────────┐
-│  Event Generator│ ──► ecommerce-events ──►   Apache Airflow    │
+│  Event Generator│ ──► ecommerce-events ──►   Apache Airflow   │
 │  (.NET 9 / C#)  │    2–10 events/sec   │   DAG every 5 min    │
 └─────────────────┘                      └──────────┬───────────┘
                                                      │
                                           batch insert (1000 events)
                                                      ▼
                                          ┌───────────────────────┐
-                                         │     PostgreSQL 16      │
-                                         │  raw.events (JSONB)    │
-                                         │  mart.daily_revenue    │
-                                         │  mart.conversion       │
-                                         │  mart.cohort_ltv       │
+                                         │     PostgreSQL 16     │
+                                         │  raw.events (JSONB)   │
+                                         │  mart.daily_revenue   │
+                                         │  mart.conversion      │
+                                         │  mart.cohort_ltv      │
                                          └──────────┬────────────┘
                                                      │
                                                      ▼
                                          ┌───────────────────────┐
-                                         │       Grafana          │
-                                         │  Daily Revenue         │
-                                         │  Conversion Rate       │
-                                         │  Best Order Days       │
+                                         │       Grafana         │
+                                         │  Daily Revenue        │
+                                         │  Conversion Rate      │
+                                         │  Order Per Days       │
                                          └───────────────────────┘
 ```
 
@@ -140,7 +140,13 @@ ecommerce-pipeline/
 ├── sql/
 │   └── init.sql                    # PostgreSQL schema (raw + mart layers)
 ├── grafana/
-│   └── Analytics.json              # Grafana dashboard definition
+│   └── dashboards/              
+│   │   └── analytics.json          # Grafana dashboard definition
+│   └── provisioning/
+│       └── dashboards/             
+│       │   └── providers.yml       # Grafana dashboards provider
+│       └── datasources/
+│           └── main.yml            # Grafana datasources
 └── docker-compose.yml              # Full stack: Kafka, Airflow, Postgres, Grafana
 ```
 
