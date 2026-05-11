@@ -4,8 +4,7 @@
       {
         "builtIn": 1,
         "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
+          "type": "grafana"
         },
         "enable": true,
         "hide": true,
@@ -18,14 +17,12 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
   "links": [],
   "liveNow": false,
   "panels": [
     {
       "datasource": {
-        "type": "postgres",
-        "uid": "b5104090-2b27-458a-b13e-dddc159501d0"
+        "type": "postgres"
       },
       "fieldConfig": {
         "defaults": {
@@ -87,7 +84,6 @@
         "x": 0,
         "y": 0
       },
-      "id": 3,
       "options": {
         "legend": {
           "calcs": [],
@@ -103,8 +99,7 @@
       "targets": [
         {
           "datasource": {
-            "type": "postgres",
-            "uid": "b5104090-2b27-458a-b13e-dddc159501d0"
+            "type": "postgres"
           },
           "editorMode": "code",
           "format": "table",
@@ -130,13 +125,12 @@
           }
         }
       ],
-      "title": "Best Order Days",
+      "title": "Orders per Day",
       "type": "timeseries"
     },
     {
       "datasource": {
-        "type": "postgres",
-        "uid": "b5104090-2b27-458a-b13e-dddc159501d0"
+        "type": "postgres"
       },
       "description": "",
       "fieldConfig": {
@@ -199,7 +193,6 @@
         "x": 12,
         "y": 0
       },
-      "id": 1,
       "options": {
         "legend": {
           "calcs": [],
@@ -215,8 +208,7 @@
       "targets": [
         {
           "datasource": {
-            "type": "postgres",
-            "uid": "b5104090-2b27-458a-b13e-dddc159501d0"
+            "type": "postgres"
           },
           "editorMode": "code",
           "format": "table",
@@ -248,8 +240,7 @@
     },
     {
       "datasource": {
-        "type": "postgres",
-        "uid": "b5104090-2b27-458a-b13e-dddc159501d0"
+        "type": "postgres"
       },
       "fieldConfig": {
         "defaults": {
@@ -311,7 +302,6 @@
         "x": 0,
         "y": 8
       },
-      "id": 2,
       "options": {
         "legend": {
           "calcs": [],
@@ -327,8 +317,7 @@
       "targets": [
         {
           "datasource": {
-            "type": "postgres",
-            "uid": "b5104090-2b27-458a-b13e-dddc159501d0"
+            "type": "postgres"
           },
           "editorMode": "code",
           "format": "table",
@@ -371,7 +360,6 @@
   "timepicker": {},
   "timezone": "",
   "title": "Analytics",
-  "uid": "f814cfc4-6341-4593-91f9-a7f9735b5f67",
   "version": 2,
   "weekStart": ""
 }
