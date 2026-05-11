@@ -4,49 +4,68 @@ from datetime import datetime, timedelta
 import json
 import psycopg2
 from confluent_kafka import Consumer
+import logging
+logger = logging.getLogger(__name__)
 
 DB_CONN = "postgresql://user:password@postgres/analytics"
 
 def consume_from_kafka(**context):
-    """Читаем батч событий из Kafka и пишем в raw"""
+    conn = None
+    consumer = None
+    try:
+        consumer = Consumer({
+            'bootstrap.servers': 'kafka:9092',
+            'group.id': 'airflow-processor',
+            'auto.offset.reset': 'earliest',
+            'enable.auto.commit': False
+        })
+        consumer.subscribe(['ecommerce-events'])
 
-    consumer = Consumer({
-        'bootstrap.servers': 'kafka:9092',
-        'group.id': 'airflow-processor',
-        'auto.offset.reset': 'earliest',
-        'enable.auto.commit': False
-    })
-    consumer.subscribe(['ecommerce-events'])
+        conn = psycopg2.connect(DB_CONN)
+        cur = conn.cursor()
 
-    conn = psycopg2.connect(DB_CONN)
-    cur = conn.cursor()
+        batch = []
+        deadline = datetime.now() + timedelta(seconds=300)
 
-    batch = []
-    deadline = datetime.now() + timedelta(seconds=30)
+        processed = 0
 
-    while datetime.now() < deadline:
-        msg = consumer.poll(timeout=1.0)
-        if msg is None or msg.error():
-            continue
+        while datetime.now() < deadline:
+            msg = consumer.poll(timeout=1.0)
+            if msg is None or msg.error():
+                continue
 
-        event = json.loads(msg.value())
-        batch.append((
-            event['event_type'],
-            event['user_id'],
-            json.dumps(event['payload']),
-            event['created_at']
-        ))
+            event = json.loads(msg.value())
+            batch.append((
+                event['event_type'],
+                event['user_id'],
+                json.dumps(event['payload']),
+                event['created_at']
+            ))
 
-        if len(batch) >= 1000:
+            if len(batch) >= 1000:
+                _insert_batch(cur, batch)
+                processed += len(batch)
+                batch.clear()
+
+        if batch:
             _insert_batch(cur, batch)
-            batch.clear()
+            processed += len(batch)
 
-    if batch:
-        _insert_batch(cur, batch)
+        conn.commit()
+        if processed > 0:
+            consumer.commit()
 
-    conn.commit()
-    consumer.commit()
-    print(f"Processed {len(batch)} events")
+        print(f"Processed {processed} events")
+    except Exception as e:
+        logger.error(f"Error processing Kafka messages: {e}", exc_info=True)
+        if conn:
+            conn.rollback() 
+        raise 
+    finally:
+        if conn:
+            conn.close()
+        if consumer:
+            consumer.close()
 
 
 def _insert_batch(cur, batch):
@@ -70,7 +89,7 @@ def build_marts(**context):
             AVG((payload->>'amount')::numeric)
         FROM raw.events
         WHERE event_type = 'order_paid'
-          AND created_at::date = CURRENT_DATE - 1
+          AND created_at::date = CURRENT_DATE
         GROUP BY created_at::date
         ON CONFLICT (date) DO UPDATE
             SET orders_count    = EXCLUDED.orders_count,
@@ -91,7 +110,7 @@ def build_marts(**context):
                 COUNT(*) FILTER (WHERE event_type = 'item_viewed')  as views,
                 COUNT(*) FILTER (WHERE event_type = 'order_created') as orders
             FROM raw.events
-            WHERE created_at::date = CURRENT_DATE - 1
+            WHERE created_at::date = CURRENT_DATE
             GROUP BY created_at::date
         ) sub
         ON CONFLICT (date) DO UPDATE

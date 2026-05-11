@@ -6,7 +6,7 @@ CREATE TABLE raw.events (
     event_type VARCHAR(50) NOT NULL,
     user_id UUID NOT NULL,
     payload JSONB NOT NULL,
-    create_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE mart.daily_revenue (

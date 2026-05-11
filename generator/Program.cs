@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Confluent.Kafka;
 
-var config = new ProducerConfig { BootstrapServers = "localhost:9092" };
+var config = new ProducerConfig { BootstrapServers = "localhost:29092" };
 var producer = new ProducerBuilder<Null, string>(config).Build();
 var rng = new Random();
 var topic = "ecommerce-events";
@@ -44,7 +44,7 @@ static EcommerceEvent GenerateEvent(Random rng, List<Guid> users)
         _ => new { source = "organic" } as object
     };
 
-    return new EcommerceEvent(eventType, userId, payload);
+    return new EcommerceEvent(eventType, userId, payload, DateTime.UtcNow);
 }
 
 static string RandomCategory(Random rng) =>
@@ -54,8 +54,5 @@ record EcommerceEvent(
     [property: JsonPropertyName("event_type")] string EventType,
     [property: JsonPropertyName("user_id")]    Guid   UserId,
     [property: JsonPropertyName("payload")]    object Payload,
-    [property: JsonPropertyName("created_at")] DateTime CreatedAt = default
-)
-{
-    public DateTime CreatedAt { get; } = CreatedAt == default ? DateTime.UtcNow : CreatedAt;
-}
+    [property: JsonPropertyName("created_at")] DateTime CreatedAt
+){}
