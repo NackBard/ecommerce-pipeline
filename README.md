@@ -34,7 +34,7 @@ A real-time data engineering pipeline that simulates an e-commerce event stream,
 - 📡 **Event generator** — .NET 9 console app producing realistic e-commerce events to Kafka at 2–10 events/sec with weighted distribution (60% views, 25% orders, 10% payments, 5% registrations)
 - 🔄 **Airflow DAG** — runs every 5 minutes: ingests a Kafka batch into `raw.events`, then aggregates into analytical marts
 - 🗄️ **Two-layer schema** — `raw` layer for all incoming events (JSONB payload), `mart` layer with pre-aggregated tables for fast analytics queries
-- 📊 **Grafana dashboard** — three panels: Daily Revenue, Conversion Rate, Best Order Days
+- 📊 **Grafana dashboard** — three panels: Daily Revenue, Conversion Rate, Orders Per Day
 - 🐳 **One-command startup** — full stack via `docker-compose up`
 
 ## 🛠️ Tech Stack
