@@ -150,10 +150,6 @@ ecommerce-pipeline/
 └── docker-compose.yml              # Full stack: Kafka, Airflow, Postgres, Grafana
 ```
 
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
 ---
 
 > Built with ❤️ using .NET 9, Apache Kafka, Apache Airflow, PostgreSQL and Grafana
