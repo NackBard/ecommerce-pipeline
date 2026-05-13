@@ -235,7 +235,7 @@
           }
         }
       ],
-      "title": "Daily Revenue",
+      "title": "Daily revenue",
       "type": "timeseries"
     },
     {
@@ -343,7 +343,7 @@
           }
         }
       ],
-      "title": "Conversion",
+      "title": "Conversion rate",
       "type": "timeseries"
     },
     {
