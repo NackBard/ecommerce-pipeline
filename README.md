@@ -23,9 +23,10 @@ A real-time data engineering pipeline that simulates an e-commerce event stream,
                                                      ▼
                                          ┌───────────────────────┐
                                          │       Grafana         │
-                                         │  Daily Revenue        │
-                                         │  Conversion Rate      │
-                                         │  Order Per Days       │
+                                         │  Daily revenue        │
+                                         │  Conversion rate      │
+                                         │  Top days by order    │
+                                         │  Cohort LTV           │
                                          └───────────────────────┘
 ```
 
@@ -121,7 +122,7 @@ consume_kafka  ──►  build_marts
 ## 🔮 Roadmap
 
 - [x] **Grafana provisioning** — add `datasources/` and `dashboards/` YAML configs so the PostgreSQL datasource and Analytics dashboard load automatically on `docker-compose up` without any manual setup ✅
-- [ ] **`mart.cohort_ltv` aggregation** — implement the Airflow task that populates the cohort LTV table (schema already exists in `init.sql`)
+- [x] **`mart.cohort_ltv` aggregation** — implement the Airflow task that populates the cohort LTV table (schema already exists in `init.sql`) ✅
 - [ ] **Dead-letter queue** — route malformed or unparseable events to a separate Kafka topic instead of silently dropping them
 - [ ] **Kafka Schema Registry** — enforce Avro/JSON Schema on the `ecommerce-events` topic to prevent bad messages at the producer level
 - [ ] **Airflow sensors** — replace the 5-minute polling interval with a Kafka sensor that triggers processing as soon as a threshold of messages accumulates
