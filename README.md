@@ -23,9 +23,9 @@ A real-time data engineering pipeline that simulates an e-commerce event stream,
                                                      ▼
                                          ┌───────────────────────┐
                                          │       Grafana         │
-                                         │  Daily Revenue        │
-                                         │  Conversion Rate      │
-                                         │  Order Per Days       │
+                                         │  Daily revenue        │
+                                         │  Conversion rate      │
+                                         │  Top days by order    │
                                          │  Cohort LTV           │
                                          └───────────────────────┘
 ```
