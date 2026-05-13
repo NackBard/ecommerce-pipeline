@@ -89,7 +89,6 @@ def build_marts(**context):
             AVG((payload->>'amount')::numeric)
         FROM raw.events
         WHERE event_type = 'order_paid'
-          AND created_at::date = CURRENT_DATE
         GROUP BY created_at::date
         ON CONFLICT (date) DO UPDATE
             SET orders_count    = EXCLUDED.orders_count,
@@ -110,13 +109,42 @@ def build_marts(**context):
                 COUNT(*) FILTER (WHERE event_type = 'item_viewed')  as views,
                 COUNT(*) FILTER (WHERE event_type = 'order_created') as orders
             FROM raw.events
-            WHERE created_at::date = CURRENT_DATE
             GROUP BY created_at::date
         ) sub
         ON CONFLICT (date) DO UPDATE
             SET views_count     = EXCLUDED.views_count,
                 orders_count    = EXCLUDED.orders_count,
                 conversion_rate = EXCLUDED.conversion_rate
+    """)
+
+    cur.execute("""
+                INSERT INTO mart.cohort_ltv (cohort_month, order_month, users_count, revenue)
+        SELECT
+            cohort_month,
+            order_month,
+			COUNT(DISTINCT orders.user_id) AS users_count,
+            SUM(revenue) AS revenue
+        FROM (
+            SELECT DISTINCT
+                DATE_TRUNC('month', created_at)::DATE as cohort_month,
+                user_id
+            FROM raw.events
+			WHERE event_type = 'user_registered'
+        ) users
+        INNER JOIN (
+                SELECT
+                    DATE_TRUNC('month', created_at)::DATE as order_month,
+					user_id,
+                    (payload->>'amount')::NUMERIC AS revenue
+                    FROM raw.events
+                    WHERE event_type = 'order_paid'
+                ) orders ON users.user_id = orders.user_id
+        WHERE order_month >= cohort_month
+		GROUP BY cohort_month, order_month 
+        ORDER BY cohort_month, order_month
+        ON CONFLICT (cohort_month, order_month) DO UPDATE
+            SET users_count     = EXCLUDED.users_count,
+                revenue    = EXCLUDED.revenue
     """)
 
     conn.commit()

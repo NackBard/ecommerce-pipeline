@@ -27,7 +27,7 @@ while (true)
 static EcommerceEvent GenerateEvent(Random rng, List<Guid> users)
 {
     var userId = users[rng.Next(users.Count)];
-
+    
     // реалистичное распределение: просмотров больше чем покупок
     var eventType = rng.Next(100) switch
     {
@@ -36,6 +36,9 @@ static EcommerceEvent GenerateEvent(Random rng, List<Guid> users)
         < 95 => "order_paid",
         _    => "user_registered"
     };
+
+    if(eventType is "user_registered")
+        users.Add(Guid.NewGuid());
 
     var payload = eventType switch
     {
