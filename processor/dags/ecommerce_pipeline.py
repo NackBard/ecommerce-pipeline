@@ -3,11 +3,13 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import json
 import psycopg2
-from confluent_kafka import Consumer
+from confluent_kafka import Consumer, Producer
 import logging
 logger = logging.getLogger(__name__)
 
 DB_CONN = "postgresql://user:password@postgres/analytics"
+EVENT_TOPIC = "ecommerce-events"
+DLQ_TOPIC = f"{EVENT_TOPIC}-dlq"
 
 def consume_from_kafka(**context):
     conn = None
@@ -19,7 +21,8 @@ def consume_from_kafka(**context):
             'auto.offset.reset': 'earliest',
             'enable.auto.commit': False
         })
-        consumer.subscribe(['ecommerce-events'])
+        dlq_producer = Producer({'bootstrap.servers': 'kafka:9092'})
+        consumer.subscribe([EVENT_TOPIC])
 
         conn = psycopg2.connect(DB_CONN)
         cur = conn.cursor()
@@ -34,13 +37,21 @@ def consume_from_kafka(**context):
             if msg is None or msg.error():
                 continue
 
-            event = json.loads(msg.value())
-            batch.append((
-                event['event_type'],
-                event['user_id'],
-                json.dumps(event['payload']),
-                event['created_at']
-            ))
+            try:
+                event = json.loads(msg.value())
+                batch.append((
+                    event['event_type'],
+                    event['user_id'],
+                    json.dumps(event['payload']),
+                    event['created_at']
+                ))
+            except (KeyError, json.JSONDecodeError) as e:
+                dlq_producer.produce(
+                    DLQ_TOPIC,
+                    value=msg.value(),
+                    headers={'error': str(e)} 
+                )
+                dlq_producer.flush()
 
             if len(batch) >= 1000:
                 _insert_batch(cur, batch)
