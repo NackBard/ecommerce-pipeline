@@ -123,7 +123,7 @@ consume_kafka  ──►  build_marts
 
 - [x] **Grafana provisioning** — add `datasources/` and `dashboards/` YAML configs so the PostgreSQL datasource and Analytics dashboard load automatically on `docker-compose up` without any manual setup ✅
 - [x] **`mart.cohort_ltv` aggregation** — implement the Airflow task that populates the cohort LTV table (schema already exists in `init.sql`) ✅
-- [ ] **Dead-letter queue** — route malformed or unparseable events to a separate Kafka topic instead of silently dropping them
+- [x] **Dead-letter queue** — route malformed or unparseable events to a separate Kafka topic instead of silently dropping them ✅
 - [ ] **Kafka Schema Registry** — enforce Avro/JSON Schema on the `ecommerce-events` topic to prevent bad messages at the producer level
 - [ ] **Airflow sensors** — replace the 5-minute polling interval with a Kafka sensor that triggers processing as soon as a threshold of messages accumulates
 - [ ] **Data quality checks** — add Great Expectations or simple SQL assertion tasks to the DAG to catch anomalies (e.g. negative revenue, zero conversion days)
