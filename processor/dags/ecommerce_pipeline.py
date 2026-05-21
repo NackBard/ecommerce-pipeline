@@ -1,9 +1,10 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
-import json
 import psycopg2
-from confluent_kafka import Consumer, Producer
+from confluent_kafka import Producer
+from confluent_kafka.avro import AvroConsumer
+from confluent_kafka.avro.serializer import SerializerError
 import logging
 logger = logging.getLogger(__name__)
 
@@ -15,12 +16,14 @@ def consume_from_kafka(**context):
     conn = None
     consumer = None
     try:
-        consumer = Consumer({
+        consumer_config = {
             'bootstrap.servers': 'kafka:9092',
             'group.id': 'airflow-processor',
             'auto.offset.reset': 'earliest',
-            'enable.auto.commit': False
-        })
+            'enable.auto.commit': False,
+            'schema.registry.url': 'http://schema-registry:8081'
+        }
+        consumer = AvroConsumer(consumer_config);
         dlq_producer = Producer({'bootstrap.servers': 'kafka:9092'})
         consumer.subscribe([EVENT_TOPIC])
 
@@ -38,14 +41,15 @@ def consume_from_kafka(**context):
                 continue
 
             try:
-                event = json.loads(msg.value())
+                event = msg.value()
                 batch.append((
                     event['event_type'],
                     event['user_id'],
-                    json.dumps(event['payload']),
+                    event['payload'],
                     event['created_at']
                 ))
-            except (KeyError, json.JSONDecodeError) as e:
+                
+            except SerializerError as e:
                 dlq_producer.produce(
                     DLQ_TOPIC,
                     value=msg.value(),

@@ -1,10 +1,16 @@
-﻿using System;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json;
+using com.ecommerce;
 using Confluent.Kafka;
+using Confluent.SchemaRegistry;
+using Confluent.SchemaRegistry.Serdes;
 
-var config = new ProducerConfig { BootstrapServers = "localhost:29092" };
-var producer = new ProducerBuilder<Null, string>(config).Build();
+var schemaRegistryConfig = new SchemaRegistryConfig { Url = "localhost:8081" };
+var producerConfig = new ProducerConfig { BootstrapServers = "localhost:29092" };
+var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig);
+var producer = new ProducerBuilder<Null, EcommerceEvent>(producerConfig)
+    .SetValueSerializer(new AvroSerializer<EcommerceEvent>(schemaRegistry))
+    .Build();
+    
 var rng = new Random();
 var topic = "ecommerce-events";
 
@@ -16,10 +22,9 @@ var userIds = Enumerable.Range(0, 100)
 while (true)
 {
     var @event = GenerateEvent(rng, userIds);
-    var json = JsonSerializer.Serialize(@event);
 
-    await producer.ProduceAsync(topic, new Message<Null, string> { Value = json });
-    Console.WriteLine($"Sent: {@event.EventType} for user {@event.UserId}");
+    await producer.ProduceAsync(topic, new Message<Null, EcommerceEvent> { Value = @event });
+    Console.WriteLine($"Sent: {@event.event_type} for user {@event.user_id}");
 
     await Task.Delay(rng.Next(100, 500)); // 2-10 событий в секунду
 }
@@ -47,15 +52,14 @@ static EcommerceEvent GenerateEvent(Random rng, List<Guid> users)
         _ => new { source = "organic" } as object
     };
 
-    return new EcommerceEvent(eventType, userId, payload, DateTime.UtcNow);
+    return new EcommerceEvent
+    {
+        event_type = eventType,
+        user_id = userId.ToString(),
+        payload = JsonSerializer.Serialize(payload),
+        created_at = DateTime.UtcNow
+    };
 }
 
 static string RandomCategory(Random rng) =>
     new[] { "electronics", "clothing", "food", "books" }[rng.Next(4)];
-
-record EcommerceEvent(
-    [property: JsonPropertyName("event_type")] string EventType,
-    [property: JsonPropertyName("user_id")]    Guid   UserId,
-    [property: JsonPropertyName("payload")]    object Payload,
-    [property: JsonPropertyName("created_at")] DateTime CreatedAt
-){}

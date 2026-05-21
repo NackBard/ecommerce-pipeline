@@ -40,7 +40,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      _PIP_ADDITIONAL_REQUIREMENTS: 'confluent-kafka==2.3.0 psycopg2-binary'
+      _PIP_ADDITIONAL_REQUIREMENTS: 'confluent-kafka==2.3.0 avro-python3 fastavro psycopg2-binary'
       AIRFLOW__CORE__LOAD_EXAMPLES: false
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://user:password@postgres/analytics
     volumes:
@@ -55,3 +55,43 @@ services:
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ./grafana/dashboards:/var/lib/grafana/dashboards
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:8.1.0
+    container_name: schema-registry
+    hostname: schema-registry
+    depends_on: [kafka]
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/subjects"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  schema-registry-init:
+    image: alpine:3.18
+    depends_on:
+      schema-registry:
+        condition: service_healthy
+    volumes:
+      - ./schemas:/schemas
+    command: sh /schemas/register.sh
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    hostname: kafka-ui
+    depends_on: [kafka, schema-registry]
+    ports:
+      - "8082:8082"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: true
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+      SERVER_PORT: 8082

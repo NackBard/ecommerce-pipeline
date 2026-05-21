@@ -1,0 +1,27 @@
+{
+  "type": "record",
+  "name": "EcommerceEvent",
+  "namespace": "com.ecommerce",
+  "fields": [
+    {
+      "name": "event_type",
+      "type": "string"
+    },
+    {
+      "name": "user_id",
+      "type": "string"
+    },
+    {
+      "name": "payload",
+      "type": "string",
+      "doc": "JSON string — different structure per event type"
+    },
+    {
+      "name": "created_at",
+      "type": {
+        "type": "long",
+        "logicalType": "timestamp-millis"
+      }
+    }
+  ]
+}
