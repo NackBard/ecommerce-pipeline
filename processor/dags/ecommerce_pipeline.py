@@ -6,6 +6,7 @@ from confluent_kafka import Producer
 from confluent_kafka.avro import AvroConsumer
 from confluent_kafka.avro.serializer import SerializerError
 import logging
+from custom_sensors import KafkaThresholdSensor
 logger = logging.getLogger(__name__)
 
 DB_CONN = "postgresql://user:password@postgres/analytics"
@@ -168,9 +169,19 @@ def build_marts(**context):
 with DAG(
     dag_id='ecommerce_pipeline',
     start_date=datetime(2024, 1, 1),
-    schedule_interval='*/5 * * * *',
+    schedule_interval='*/1 * * * *',
     catchup=False
 ) as dag:
+
+    wait_for_messages = KafkaThresholdSensor(
+        task_id='wait_for_threshold',
+        topic='ecommerce-events',
+        bootstrap_servers='kafka:9092',
+        threshold=1000,
+        poke_interval=30,
+        timeout=60 * 60,
+        mode='reschedule'
+    )
 
     ingest = PythonOperator(
         task_id='consume_kafka',
