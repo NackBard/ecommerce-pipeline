@@ -125,7 +125,7 @@ consume_kafka  ──►  build_marts
 - [x] **`mart.cohort_ltv` aggregation** — implement the Airflow task that populates the cohort LTV table (schema already exists in `init.sql`) ✅
 - [x] **Dead-letter queue** — route malformed or unparseable events to a separate Kafka topic instead of silently dropping them ✅
 - [x] **Kafka Schema Registry** — enforce Avro/JSON Schema on the `ecommerce-events` topic to prevent bad messages at the producer level ✅
-- [ ] **Airflow sensors** — replace the 5-minute polling interval with a Kafka sensor that triggers processing as soon as a threshold of messages accumulates
+- [x] **Airflow sensors** — replace the 5-minute polling interval with a Kafka sensor that triggers processing as soon as a threshold of messages accumulates ✅
 - [ ] **Data quality checks** — add Great Expectations or simple SQL assertion tasks to the DAG to catch anomalies (e.g. negative revenue, zero conversion days)
 - [ ] **Partitioning** — partition `raw.events` by `created_at` month to keep query performance stable as data grows
 
